@@ -111,10 +111,15 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
         }
 		
         UIImage *icon = nil;
+        NSArray *iconRefs = nil;
         
         if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFiles"]) {
-            NSArray *iconRefs = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFiles"];
-            
+            iconRefs = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFiles"];
+        } else if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"]) {
+            iconRefs = [[[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"];
+        }
+        
+        if (iconRefs) {
             float targetSize = 57.*[UIScreen mainScreen].scale;
             float lastSize = 0;
             
