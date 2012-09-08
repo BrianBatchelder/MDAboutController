@@ -225,6 +225,11 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     return [self initWithStyle:nil];
 }
 
+- (id)awakeFromNib
+{
+    return [self initWithStyle:nil];
+}
+
 - (void)setBackgroundColor:(UIColor *)aColor
 {
     if (backgroundColor != aColor) {
