@@ -46,7 +46,12 @@
 
 - (UIColor *)backgroundColor
 {
-    return [UIColor groupTableViewBackgroundColor];
+    UIColor *backgroundColor = [[UITableView appearance] backgroundColor];
+    if (!backgroundColor) {
+        backgroundColor = [UIColor groupTableViewBackgroundColor];
+    }
+    return backgroundColor;
+
 }
 
 - (BOOL)hasSimpleBackground
