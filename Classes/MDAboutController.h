@@ -65,6 +65,7 @@
 - (IBAction)dismiss:(id)sender; // hide if modal
 
 @property (nonatomic, readonly, retain) MDACStyle *style;
+- (void)setupStyle:(MDACStyle *)aStyle;
 @property (nonatomic, retain) UIView *titleBar;
 
 @property (nonatomic) BOOL showsTitleBar; // set to NO automatically when in navcontroller. 
