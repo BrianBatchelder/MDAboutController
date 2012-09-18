@@ -235,6 +235,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (id)awakeFromNib
 {
+    [super awakeFromNib];
     [self setupStyle:nil];
     return self;
 }
