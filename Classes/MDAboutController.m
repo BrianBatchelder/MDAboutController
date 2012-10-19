@@ -89,7 +89,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     
     credits = [[NSMutableArray alloc] init];
     
-    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
     NSString *versionString = nil;
     
     // Former makes about string too long
@@ -725,7 +725,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
                 }
             } else if ([url.scheme isEqualToString:@"mailto"]) {
                 if (NSClassFromString(@"MFMailComposeViewController")) {
-                    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+                    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
                     NSString *versionString = nil;
                     NSString *bundleShortVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
                     NSString *bundleVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
