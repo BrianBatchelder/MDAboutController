@@ -100,6 +100,13 @@
     [activity stopAnimating];
     activity.hidden = YES;
     self.navigationItem.title = [webView stringByEvaluatingJavaScriptFromString:@"document.title"];
+    UIBarButtonItem *openInSafariButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(openInSafariAction:)];
+    self.navigationItem.rightBarButtonItem = openInSafariButton;
+    [openInSafariButton release];
+}
+
+- (void)openInSafariAction:(id)sender {
+    [[UIApplication sharedApplication] openURL:self.webURL];
 }
 
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error
