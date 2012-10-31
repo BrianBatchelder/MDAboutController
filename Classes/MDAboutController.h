@@ -61,6 +61,7 @@
 }
 
 - (id)initWithStyle:(MDACStyle *)style;
+- (id)initWithStyle:(MDACStyle *)aStyle creditFile:(NSString *)creditFile;
 
 - (IBAction)dismiss:(id)sender; // hide if modal
 
@@ -74,6 +75,7 @@
 @property (nonatomic, retain) UIColor *backgroundColor;
 @property (nonatomic) BOOL hasSimpleBackground; // set automatically to YES for non patterend background. Set to YES for better performance, at the cost of a patterned background looking weird.
 
+@property (nonatomic, readonly) NSString *creditFile;
 @property (nonatomic, readonly) NSArray *credits; // for fast enumeration
 @property (nonatomic, readonly) NSUInteger creditCount;
 

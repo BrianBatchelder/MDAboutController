@@ -164,7 +164,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     
     [credits addObject:[MDACIconCredit iconCreditWithAppName:appName versionString:versionString icon:icon]];
     
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"Credits" ofType:@"plist"];
+    NSString *path = [[NSBundle mainBundle] pathForResource:self.creditFile ofType:@"plist"];
     if (path) {
         NSArray *creditsFile = [[NSArray alloc] initWithContentsOfFile:path];
         if (creditsFile) {
@@ -219,7 +219,13 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (id)initWithStyle:(MDACStyle *)aStyle
 {
+    return [self initWithStyle:aStyle creditFile:@"Credits"];
+}
+
+- (id)initWithStyle:(MDACStyle *)aStyle creditFile:(NSString *)creditFile
+{
     if ((self = [super initWithNibName:nil bundle:nil])) {
+        _creditFile = creditFile;
         [self setupStyle:aStyle];
     }
     return self;
