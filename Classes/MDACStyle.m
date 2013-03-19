@@ -50,7 +50,7 @@
         return [[UITableView appearance] backgroundColor];
     }
 
-    __strong static UIImage* tableViewBackgroundImage = nil;
+    __strong static UIColor *tableViewBackgroundColor = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         CGFloat scale = [[UIScreen mainScreen] scale];
@@ -67,10 +67,10 @@
             [[UIColor colorWithRed:203/255. green:208/255. blue:218/255. alpha:1] setFill];
             CGContextFillRect(c, CGRectMake(6, 0, 2, 1));
         }
-        tableViewBackgroundImage = UIGraphicsGetImageFromCurrentImageContext();
+        tableViewBackgroundColor = [UIColor colorWithPatternImage:UIGraphicsGetImageFromCurrentImageContext()];
         UIGraphicsEndImageContext();
     });
-    return [UIColor colorWithPatternImage:tableViewBackgroundImage];
+    return tableViewBackgroundColor;
 }
 
 - (BOOL)hasSimpleBackground
