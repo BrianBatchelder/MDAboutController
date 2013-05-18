@@ -61,6 +61,9 @@
     webView.delegate = self;
     webView.scalesPageToFit = YES;
     
+    if ([[[webURL scheme] lowercaseString] isEqualToString:@"file"] && [[[webURL host] lowercaseString] isEqualToString:@"mainbundle"]) {
+        webURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:[[webURL lastPathComponent] stringByDeletingPathExtension] ofType:[webURL pathExtension]] isDirectory:NO];
+    }
     [webView loadRequest:[NSURLRequest requestWithURL:webURL]];
     [self.view addSubview:webView];
     
