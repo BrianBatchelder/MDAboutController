@@ -1017,7 +1017,10 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (void)reloadCredits
 {
-    if (!reloadingCredits) [self performSelector:@selector(_reloadCreditsNow) withObject:nil afterDelay:0];
+    if (!reloadingCredits) {
+        reloadingCredits = YES;
+        [self performSelector:@selector(_reloadCreditsNow) withObject:nil afterDelay:0];
+    }
 }
 
 - (void)_reloadCreditsNow
