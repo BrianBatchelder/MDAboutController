@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Doron Katz 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -46,9 +46,9 @@
 
 - (id)initWithURL:(NSURL*)url;
 
-@property (nonatomic, retain) NSURL *webURL;
-@property (nonatomic, retain) UIActivityIndicatorView *activity;
-@property (nonatomic, retain) UIWebView *webView;
-@property (nonatomic, retain) UIAlertView *alert;
+@property (nonatomic, strong) NSURL *webURL;
+@property (nonatomic, strong) UIActivityIndicatorView *activity;
+@property (nonatomic, strong) UIWebView *webView;
+@property (nonatomic, strong) UIAlertView *alert;
 
 @end

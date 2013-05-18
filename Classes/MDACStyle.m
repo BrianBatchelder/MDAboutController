@@ -5,7 +5,7 @@
 //  Created by Dimitri Bouniol on 12/26/11.
 //  Copyright (c) 2012 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -41,7 +41,7 @@
 
 + (id)style
 {
-    return [[[self alloc] init] autorelease];
+    return [[self alloc] init];
 }
 
 - (UIColor *)backgroundColor

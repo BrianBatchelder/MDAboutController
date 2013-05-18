@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -40,7 +40,7 @@
 
 @implementation MDACListCredit
 
-@synthesize title;
+@synthesize items;
 
 - (id)initWithTitle:(NSString *)aTitle
 {
@@ -63,12 +63,17 @@
 
 + (id)listCreditWithTitle:(NSString *)aTitle
 {
-    return [[[self alloc] initWithTitle:aTitle] autorelease];
+    return [[self alloc] initWithTitle:aTitle];
 }
 
 - (id)initWithDictionary:(NSDictionary *)aDict
 {
     if ((self = [self initWithTitle:[aDict objectForKey:@"Title"]])) {
+        self.identifier = [aDict objectForKey:@"Identifier"];
+        NSMutableDictionary *newDict = [aDict mutableCopy];
+        [newDict removeObjectsForKeys:[NSArray arrayWithObjects:@"Title", @"Identifier", @"Items", nil]];
+        self.userAssociations = newDict;
+        
         NSArray *itemsList = [aDict objectForKey:@"Items"];
         for (NSDictionary *item in itemsList) {
             [self addItem:[MDACCreditItem itemWithDictionary:item]];
@@ -79,7 +84,7 @@
 
 + (id)listCreditWithDictionary:(NSDictionary *)aDict
 {
-    return [[[self alloc] initWithDictionary:aDict] autorelease];
+    return [[self alloc] initWithDictionary:aDict];
 }
 
 - (NSUInteger)count
@@ -102,10 +107,5 @@
     return [items objectAtIndex:index];
 }
 
-- (void)dealloc {
-    [title release];
-    [items release];
-    [super dealloc];
-}
 
 @end

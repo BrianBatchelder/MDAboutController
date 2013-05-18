@@ -5,7 +5,7 @@
 //  Created by Dimitri Bouniol on 12/26/11.
 //  Copyright (c) 2012 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -46,9 +46,25 @@
     if (self = [super init]) {
         MDAboutController *aboutController = [[MDAboutController alloc] initWithStyle:style];
         [self pushViewController:aboutController animated:NO];
-        [aboutController release];
     }
     return self;
+}
+
+- (void)setDelegate:(id)delegate
+{
+    NSAssert(!([delegate conformsToProtocol:@protocol(MDAboutControllerDelegate)] && ![delegate conformsToProtocol:@protocol(UINavigationControllerDelegate)]), @"Please use setAboutControllerDelegate: instead to set the About Controller delegate.");
+    
+    [super setDelegate:delegate];
+}
+
+- (void)setAboutControllerDelegate:(id<MDAboutControllerDelegate>)aboutControllerDelegate
+{
+    self.aboutController.delegate = aboutControllerDelegate;
+}
+
+- (id<MDAboutControllerDelegate>)aboutControllerDelegate
+{
+    return self.aboutController.delegate;
 }
 
 - (id)init
@@ -68,13 +84,12 @@
     if (self.parentViewController.class != [UITabBarController class]) {
         UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(hideAbout:)];
         self.aboutController.navigationItem.rightBarButtonItem = doneButton;
-        [doneButton release];
     }
 }
 
 - (void)hideAbout:(MDACStyle *)sender
 {
-    [self dismissModalViewControllerAnimated:YES];
+    [self dismissViewControllerAnimated:YES completion:NULL];
 }
 
 @end

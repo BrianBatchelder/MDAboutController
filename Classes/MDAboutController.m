@@ -3,11 +3,11 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 4/18/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //
 //  Copyright (c) 2010 Dimitri Bouniol, Mochi Development, Inc.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -68,189 +68,98 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 - (void)generateCachedCells; // internal
 - (void)generateCachedCellsIfNeeded; // internal
 
+- (void)generateIconIfNeeded;
+
 - (void)openMailToRecipient:(NSString *)recipient subject:(NSString *)subject;
 
-@property (nonatomic, retain, readwrite) MDACStyle *style;
+@property (nonatomic, strong, readwrite) MDACStyle *style;
+@property (nonatomic, strong, readwrite) NSString *creditsName;
 
+- (void)_reloadCreditsNow;
+- (NSString *)_localizedAboutString;
+- (NSString *)_shortLocalizedVersionFormatString;
+- (NSString *)_longLocalizedVersionFormatString;
+
+@end
+
+@interface NSObject ()
++ (BOOL)canSendMail;
 @end
 
 @implementation MDAboutController
 
-@synthesize showsTitleBar, titleBar, backgroundColor, hasSimpleBackground, credits, style;
+@synthesize showsTitleBar, titleBar, backgroundColor, hasSimpleBackground, credits, style, delegate;
 
-- (void)setupStyle:(MDACStyle *)aStyle
+- (id)initWithCreditsName:(NSString *)aName style:(MDACStyle *)aStyle
 {
-    self.style = aStyle;
-    self.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-    self.modalPresentationStyle = UIModalPresentationFormSheet;
-    
-    self.backgroundColor = [self.style backgroundColor];
-    self.hasSimpleBackground = [self.style hasSimpleBackground];
-    
-    credits = [[NSMutableArray alloc] init];
-    
-    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
-    NSString *versionString = nil;
-    
-    // Former makes about string too long
-    //self.navigationItem.title = [NSString stringWithFormat:@"About %@", appName];
-    self.navigationItem.title = @"About";
-    
-    NSString *bundleShortVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
-    NSString *bundleVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-    
-    if (bundleShortVersionString && bundleVersionString) {
-        versionString = [NSString stringWithFormat:@"Version %@ (%@)",
-                         bundleShortVersionString,
-                         bundleVersionString];
-    } else if (bundleShortVersionString) {
-        versionString = [NSString stringWithFormat:@"Version %@", bundleShortVersionString];
-    } else if (bundleVersionString) {
-        versionString = [NSString stringWithFormat:@"Version %@", bundleVersionString];
+    if ((self = [super initWithNibName:nil bundle:nil])) {
+        self.style = aStyle;
+        self.creditsName = aName;
+        
+        self.showsAttributions = YES;
+        self.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+        self.modalPresentationStyle = UIModalPresentationFormSheet;
+        
+        self.backgroundColor = [self.style backgroundColor];
+        self.hasSimpleBackground = [self.style hasSimpleBackground];
+        
+        self.navigationItem.title = [self _localizedAboutString];
+        
+        credits = [[NSMutableArray alloc] init];
+        
+        [self reloadCredits];
     }
     
-    UIImage *icon = nil;
-    NSArray *iconRefs = nil;
-    
-    if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFiles"]) {
-        iconRefs = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFiles"];
-    } else if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"]) {
-        iconRefs = [[[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"];
+    return self;
+}
+
+- (id)initWithCoder:(NSCoder *)decoder
+{
+    if (self = [super initWithCoder:decoder]) {
+        self.style = [decoder decodeObjectForKey:@"MDACStyle"];
+        self.creditsName = [decoder decodeObjectForKey:@"MDACCreditsName"];
+        self.showsAttributions = [decoder decodeBoolForKey:@"MDACShowsAttributions"];
+        
+        self.backgroundColor = [self.style backgroundColor];
+        self.hasSimpleBackground = [self.style hasSimpleBackground];
+        
+        self.navigationItem.title = [self _localizedAboutString];
+        
+        credits = [[NSMutableArray alloc] init];
+        
+        [self reloadCredits];
     }
     
-    if (iconRefs) {
-        float targetSize = 57.*[UIScreen mainScreen].scale;
-        float lastSize = 0;
-        
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            targetSize = 72.*[UIScreen mainScreen].scale;
-        }
-        
-        NSMutableArray *icons = [[NSMutableArray alloc] init];
-        
-        for (NSString *iconRef in iconRefs) {
-            UIImage *imageA = [UIImage imageNamed:iconRef];
-            
-            NSUInteger i = 0;
-            
-            for (i = 0; i < [icons count]; i++) {
-                UIImage *imageB = [icons objectAtIndex:i];
-                if (imageA.size.width*imageA.scale < imageB.size.width*imageB.scale)
-                    break;
-            }
-            
-            [icons insertObject:imageA atIndex:i];
-        }
-        
-        for (UIImage *testIcon in icons) {
-            if (testIcon.size.width*testIcon.scale > lastSize ) {
-                lastSize = testIcon.size.width*testIcon.scale;
-                icon = testIcon;
-                
-                if (testIcon.size.width*testIcon.scale >= targetSize)
-                    break;
-            }
-        }
-        
-        [icons release];
-    } else {
-        icon = [UIImage imageNamed:[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIconFile"]];
-    }
-    
-    if (icon) {
-        UIImage *maskImage = [UIImage imageNamed:@"MDACIconMask.png"];
-        icon = [icon maskedImageWithMask:maskImage];
-    }
-    
-    [credits addObject:[MDACIconCredit iconCreditWithAppName:appName versionString:versionString icon:icon]];
-    
-    NSString *path = [[NSBundle mainBundle] pathForResource:self.creditFile ofType:@"plist"];
-    if (path) {
-        NSArray *creditsFile = [[NSArray alloc] initWithContentsOfFile:path];
-        if (creditsFile) {
-            for (NSDictionary *creditDict in creditsFile) {
-                if (creditDict) {
-                    if ([[creditDict objectForKey:@"Type"] isEqualToString:@"List"]) {
-                        [credits addObject:[MDACListCredit listCreditWithDictionary:creditDict]];
-                    } else if ([[creditDict objectForKey:@"Type"] isEqualToString:@"Text"]) {
-                        [credits addObject:[MDACTextCredit textCreditWithDictionary:creditDict]];
-                    } if ([[creditDict objectForKey:@"Type"] isEqualToString:@"Image"]) {
-                        [credits addObject:[MDACImageCredit imageCreditWithDictionary:creditDict]];
-                    }
-                }
-            }
-        }
-        [creditsFile release];
-    }
-    
-    int numClasses;
-    Class *classes = NULL;
-    numClasses = objc_getClassList(NULL, 0);
-    
-    if (numClasses > 0 ) {
-        classes = malloc(sizeof(Class) * numClasses);
-        numClasses = objc_getClassList(classes, numClasses);
-        
-        for (int i = 0; i < numClasses; i++) {
-            Class actualClass = object_getClass(classes[i]);
-            if (actualClass && class_respondsToSelector(actualClass, @selector(respondsToSelector:))) {
-                unsigned int numMethods = 0;
-                Method *methods = class_copyMethodList(actualClass, &numMethods);
-                
-                for (int j = 0; j < numMethods; j++) {
-                    if (method_getName(methods[j]) == @selector(MDAboutControllerTextCreditDictionary)) {
-                        //                            NSLog(@"Class %@ is included", NSStringFromClass(classes[i]));
-                        [credits addObject:[MDACTextCredit textCreditWithDictionary:[classes[i] performSelector:@selector(MDAboutControllerTextCreditDictionary)]]];
-                    }
-                }
-                free(methods);
-            }
-        }
-        free(classes);
-    }
-    
-    // To remove (:sadface:) the following credit, call [aboutController removeLastCredit]; after initializing your controller.
-    
-    [credits addObject:[MDACTextCredit textCreditWithText:@"About screen powered by MDAboutViewController, available free on GitHub!"
-                                                     font:[UIFont boldSystemFontOfSize:11]
-                                                alignment:UITextAlignmentCenter
-                                                  linkURL:[NSURL URLWithString:@"https://github.com/mochidev/MDAboutControllerDemo"]]];
+    return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+    [super encodeWithCoder:coder];
+    [coder encodeObject:self.style forKey:@"MDACStyle"];
+    [coder encodeObject:self.creditsName forKey:@"MDACCreditsName"];
+    [coder encodeBool:self.showsAttributions forKey:@"MDACShowsAttributions"];
+}
+
+- (id)initWithCreditsName:(NSString *)aName
+{
+    return [self initWithCreditsName:aName style:nil];
 }
 
 - (id)initWithStyle:(MDACStyle *)aStyle
 {
-    return [self initWithStyle:aStyle creditFile:@"Credits"];
-}
-
-- (id)initWithStyle:(MDACStyle *)aStyle creditFile:(NSString *)creditFile
-{
-    if ((self = [super initWithNibName:nil bundle:nil])) {
-        _creditFile = creditFile;
-        [self setupStyle:aStyle];
-    }
-    return self;
+    return [self initWithCreditsName:nil style:aStyle];
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
-    if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
-        [self setupStyle:nil];
-    }
-    return self;
-}
-
-- (id)awakeFromNib
-{
-    [super awakeFromNib];
-    [self setupStyle:nil];
-    return self;
+    return [self initWithStyle:nil];
 }
 
 - (void)setBackgroundColor:(UIColor *)aColor
 {
     if (backgroundColor != aColor) {
-        [backgroundColor release];
-        backgroundColor = [aColor retain];
+        backgroundColor = aColor;
         
         tableView.backgroundColor = backgroundColor;
         if ([self isViewLoaded])
@@ -268,15 +177,26 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     return style;
 }
 
-- (void)dealloc
+- (NSString *)creditsName
 {
-    [style release];
-    [cachedCellCredits release];
-    [cachedCellHeights release];
-    [cachedCellIDs release];
-    [cachedCellIndices release];
-    [credits release];
-    [super dealloc];
+    if (!_creditsName) {
+        _creditsName = @"Credits";
+    }
+    return _creditsName;
+}
+
+- (void)setDelegate:(id<MDAboutControllerDelegate>)aDelegate
+{
+    delegate = aDelegate;
+    
+    [self reloadCredits];
+}
+
+- (void)setShowsAttributions:(BOOL)yn
+{
+    _showsAttributions = yn;
+    
+    [self reloadCredits];
 }
 
 - (void)didReceiveMemoryWarning
@@ -293,10 +213,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (void)generateCachedCells
 {
-    [cachedCellCredits release];
-    [cachedCellHeights release];
-    [cachedCellIDs release];
-    [cachedCellIndices release];
     
     cachedCellCredits = [[NSMutableArray alloc] init];
     cachedCellHeights = [[NSMutableArray alloc] init];
@@ -366,11 +282,11 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
                 textSize = [[(MDACTextCredit *)tempCredit text] sizeWithFont:[(MDACTextCredit *)tempCredit font]
                                                            constrainedToSize:CGSizeMake(450, 1000)
-                                                               lineBreakMode:UILineBreakModeWordWrap];
+                                                               lineBreakMode:NSLineBreakByWordWrapping];
             } else {
                 textSize = [[(MDACTextCredit *)tempCredit text] sizeWithFont:[(MDACTextCredit *)tempCredit font]
                                                            constrainedToSize:CGSizeMake(300, 1000)
-                                                               lineBreakMode:UILineBreakModeWordWrap];
+                                                               lineBreakMode:NSLineBreakByWordWrapping];
             }
             
             [cachedCellCredits addObject:tempCredit];
@@ -437,7 +353,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     UIImageView *imageView = nil;
     
     if (!cell) {
-        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID] autorelease];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
         
         if (cellID == MDACTopListCellID || cellID == MDACMiddleListCellID || cellID == MDACBottomListCellID || cellID == MDACSingleListCellID) {
             UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.bounds.size.width, [self.style listHeight])];
@@ -468,17 +384,13 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             
             backgroundImage.autoresizingMask = UIViewAutoresizingFlexibleWidth;
             [backgroundView addSubview:backgroundImage];
-            [backgroundImage release];
             
             selectedBackgroundImage.autoresizingMask = UIViewAutoresizingFlexibleWidth;
             [selectedBackgroundView addSubview:selectedBackgroundImage];
-            [selectedBackgroundImage release];
             
             cell.backgroundView = backgroundView;
-            [backgroundView release];
             
             cell.selectedBackgroundView = selectedBackgroundView;
-            [selectedBackgroundView release];
             
             textLabel = [[UILabel alloc] init];
             textLabel.font = [self.style listCellFont];
@@ -488,25 +400,25 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             textLabel.shadowOffset = [self.style listCellShadowOffset];
             textLabel.tag = 1;
             [cell.contentView addSubview:textLabel];
-            [textLabel release];
             
             detailTextLabel = [[UILabel alloc] init];
             detailTextLabel.font = [self.style listCellDetailFont];
+            detailTextLabel.minimumScaleFactor = 0.8;
+            detailTextLabel.adjustsFontSizeToFitWidth = YES;
+            detailTextLabel.baselineAdjustment = UIBaselineAdjustmentAlignBaselines;
             detailTextLabel.backgroundColor = [self.style listCellBackgroundColor];
             detailTextLabel.textColor = [self.style listCellDetailTextColor];
             detailTextLabel.shadowColor = [self.style listCellShadowColor];
             detailTextLabel.shadowOffset = [self.style listCellShadowOffset];
-            detailTextLabel.textAlignment = UITextAlignmentRight;
+            detailTextLabel.textAlignment = NSTextAlignmentRight;
             detailTextLabel.tag = 2;
             [cell.contentView addSubview:detailTextLabel];
-            [detailTextLabel release];
             
             linkAvailableImageView = [[UIImageView alloc] initWithFrame:CGRectMake(cell.contentView.bounds.size.width-39, 9, 24, 24)];
             linkAvailableImageView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin;
             linkAvailableImageView.image = [self.style listCellLinkArrow];
             linkAvailableImageView.tag = 3;
             [cell.contentView addSubview:linkAvailableImageView];
-            [linkAvailableImageView release];
         } else if (cellID == MDACIconCellID) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             containerView = [[UIView alloc] init];
@@ -531,8 +443,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             [containerView addSubview:iconBackground];
             [containerView addSubview:iconView];
             
-            [iconBackground release];
-            [iconView release];
             
             textLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width+25, floorf(10+iconView.bounds.size.height/2.-17), 170, 22)];
             textLabel.font = [self.style iconCellFont];
@@ -543,7 +453,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             textLabel.shadowOffset = [self.style iconCellShadowOffset];
             textLabel.tag = 1;
             [containerView addSubview:textLabel];
-            [textLabel release];
             
             detailTextLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width+25, floorf(10+iconView.bounds.size.height/2.+3), 170, 20)];
             detailTextLabel.font = [self.style iconCellDetailFont];
@@ -554,16 +463,14 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             detailTextLabel.shadowOffset = [self.style iconCellShadowOffset];
             detailTextLabel.tag = 2;
             [containerView addSubview:detailTextLabel];
-            [detailTextLabel release];
             
             [cell.contentView addSubview:containerView];
-            [containerView release];
         } else if (cellID == MDACListTitleCellID) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             
             textLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, -10, cell.contentView.bounds.size.width-40, cell.contentView.bounds.size.height)];
             textLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
-            textLabel.lineBreakMode = UILineBreakModeTailTruncation;
+            textLabel.lineBreakMode = NSLineBreakByTruncatingTail;
             textLabel.numberOfLines = 0;
             textLabel.backgroundColor = [UIColor clearColor];
             textLabel.opaque = NO;
@@ -573,13 +480,12 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             textLabel.shadowOffset = [self.style listCellTitleShadowOffset];
             textLabel.tag = 1;
             [cell.contentView addSubview:textLabel];
-            [textLabel release];
         } else if (cellID == MDACTextCellID) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             
             textLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, cell.contentView.bounds.size.width-20, cell.contentView.bounds.size.height)];
             textLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
-            textLabel.lineBreakMode = UILineBreakModeWordWrap;
+            textLabel.lineBreakMode = NSLineBreakByWordWrapping;
             textLabel.numberOfLines = 0;
             textLabel.backgroundColor = [UIColor clearColor];
             textLabel.opaque = NO;
@@ -589,7 +495,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             textLabel.shadowOffset = [self.style textCellShadowOffset];
             textLabel.tag = 1;
             [cell.contentView addSubview:textLabel];
-            [textLabel release];
         } else if (cellID == MDACImageCellID) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             
@@ -600,7 +505,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             imageView.contentMode = UIViewContentModeScaleAspectFit;
             imageView.tag = 6;
             [cell.contentView addSubview:imageView];
-            [imageView release];
         } else {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
@@ -633,7 +537,13 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             [textLabel sizeToFit];
             [detailTextLabel sizeToFit];
             
-            if ([(MDACListCredit *)credit itemAtIndex:index].link) {
+            BOOL selectable = ([(MDACListCredit *)credit itemAtIndex:index].link || [(MDACListCredit *)credit itemAtIndex:index].viewController);
+            
+            if ([delegate respondsToSelector:@selector(aboutController:isItemSelectable:fromCredit:withIdentifier:)]) {
+                selectable = [delegate aboutController:self isItemSelectable:[(MDACListCredit *)credit itemAtIndex:index] fromCredit:credit withIdentifier:[(MDACListCredit *)credit itemAtIndex:index].identifier];
+            }
+            
+            if (selectable) {
                 linkAvailableImageView.hidden = NO;
                 cell.selectionStyle = UITableViewCellSelectionStyleBlue;
             } else {
@@ -661,7 +571,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
         textLabel.textAlignment = [(MDACTextCredit *)credit textAlignment];
         textLabel.font = [(MDACTextCredit *)credit font];
         textLabel.text = [(MDACTextCredit *)credit text];
-        textLabel.highlighted = ([(MDACTextCredit *)credit link] != nil);
+        textLabel.highlighted = ([(MDACTextCredit *)credit link] || [(MDACTextCredit *)credit viewController]);
     } else if ([credit isMemberOfClass:[MDACImageCredit class]]) {
         imageView.image = [(MDACImageCredit *)credit image];
     }
@@ -677,15 +587,23 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (void)openMailToRecipient:(NSString *)recipient subject:(NSString *)subject
 {
-    UIViewController *mailer = [[[NSClassFromString(@"MFMailComposeViewController") alloc] init] autorelease];
+    UIViewController *mailer = [[NSClassFromString(@"MFMailComposeViewController") alloc] init];
     [mailer performSelector:@selector(setMailComposeDelegate:) withObject:self];
     [mailer performSelector:@selector(setToRecipients:) withObject:[NSArray arrayWithObject:recipient]];
     [mailer performSelector:@selector(setSubject:) withObject:subject];
     
     UIViewController *parent = self;
     
-    if ([self isViewLoaded] && self.view.window.rootViewController != nil) {
-        parent = self.view.window.rootViewController;
+//    if ([self isViewLoaded] && self.view.window.rootViewController != nil) {
+//        parent = self.view.window.rootViewController;
+//    }
+    
+    if ([delegate respondsToSelector:@selector(viewControllerToPresentMailController:)]) {
+        parent = [delegate viewControllerToPresentMailController:self];
+    }
+    
+    if ([delegate respondsToSelector:@selector(aboutControllerWillPresentMailController:)]) {
+        [delegate aboutControllerWillPresentMailController:self];
     }
     
     // dear compiler warning... shut up
@@ -708,12 +626,14 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 //    }
     
     [controller dismissModalViewControllerAnimated:YES];
+    
+    if ([delegate respondsToSelector:@selector(aboutControllerDidDismissMailController:)]) {
+        [delegate aboutControllerDidDismissMailController:self];
+    }
 }
 
-- (void)tableView:(UITableView *)aTableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+- (void)tableView:(UITableView *)aTableView didHighlightRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    
     MDACCredit *credit = nil;
     id cellID = nil;
     NSUInteger index = 0;
@@ -729,68 +649,155 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     if ((NSNull *)[cachedCellIDs objectAtIndex:indexPath.row] != [NSNull null])
         cellID = [cachedCellIDs objectAtIndex:indexPath.row];
     
-    if ([credit isMemberOfClass:[MDACListCredit class]] && cellID != MDACListTitleCellID) {
-        NSURL *url = [(MDACListCredit *)credit itemAtIndex:index].link;
-        if (url) {
-            if ([url.scheme isEqualToString:@"x-controller"]) {
-                Class ViewController = NSClassFromString([url resourceSpecifier]);
-                if ([ViewController isSubclassOfClass:[UIViewController class]]) {
-                    if (self.navigationController) {
-                        UIViewController *viewController = [[ViewController alloc] init];
-                        [self.navigationController pushViewController:viewController animated:YES];     
-                        [viewController release];
-                    }
-                }
-            } else if ([url.scheme isEqualToString:@"mailto"]) {
-                if (NSClassFromString(@"MFMailComposeViewController")) {
-                    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
-                    NSString *versionString = nil;
-                    NSString *bundleShortVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
-                    NSString *bundleVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-                    
-                    if (bundleShortVersionString && bundleVersionString) {
-                        versionString = [NSString stringWithFormat:@" %@ (%@)",
-                                         bundleShortVersionString,
-                                         bundleVersionString];
-                    } else if (bundleShortVersionString) {
-                        versionString = [NSString stringWithFormat:@" %@", bundleShortVersionString];
-                    } else if (bundleVersionString) {
-                        versionString = [NSString stringWithFormat:@" %@", bundleVersionString];
-                    }
-                    NSString *subject = [NSString stringWithFormat:@"%@%@ Support", appName, versionString];
-                    
-                    NSString *recipient = [url resourceSpecifier];
-                    if ([[(MDACListCredit *)credit itemAtIndex:index].userAssociations objectForKey:@"EmailName"]) {
-                        recipient = [NSString stringWithFormat:@"%@ <%@>", [[(MDACListCredit *)credit itemAtIndex:index].userAssociations objectForKey:@"EmailName"], recipient];
-                    }
-                    
-                    [self openMailToRecipient:recipient subject:subject];
-                } else {
-                    [[UIApplication sharedApplication] openURL:url];
-                }
-            } else if (!self.navigationController) {
-                [[UIApplication sharedApplication] openURL:url];
-            } else {
-                NSURL *url = [(MDACListCredit *)credit itemAtIndex:index].link;
-                
-                MDACWebViewController *linkViewController = [[MDACWebViewController alloc] initWithURL:url];
-                [[self navigationController] pushViewController:linkViewController animated:YES];     
-                [linkViewController release];
-            }
-        }
-    } else if ([credit isMemberOfClass:[MDACTextCredit class]]) {
-        if ([(MDACTextCredit *)credit link]) {
-            if (!self.navigationController) {
-                [[UIApplication sharedApplication] openURL:[(MDACTextCredit *)credit link]];
-            } else {
-                NSURL *url =[(MDACTextCredit *)credit link];
-                
-                MDACWebViewController *linkViewController = [[MDACWebViewController alloc] initWithURL:url];
-                [[self navigationController] pushViewController:linkViewController animated:YES];           
-                [linkViewController release];
-            }
+    if ([credit isMemberOfClass:[MDACTextCredit class]] && ([(MDACTextCredit *)credit link] || [(MDACTextCredit *)credit viewController])) {
+        UITableViewCell *cell = [aTableView cellForRowAtIndexPath:indexPath];
+        UILabel *textLabel = (UILabel *)[cell.contentView viewWithTag:1];
+        
+        textLabel.highlighted = NO;
+    }
+}
+
+- (void)tableView:(UITableView *)aTableView didUnhighlightRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSArray *visibleCells = [aTableView visibleCells];
+    
+    for (UITableViewCell *cell in visibleCells) {
+        NSIndexPath *indexPath = [aTableView indexPathForCell:cell];
+        
+        MDACCredit *credit = nil;
+        id cellID = nil;
+        NSUInteger index = 0;
+        
+        [self generateCachedCellsIfNeeded];
+        
+        if ((NSNull *)[cachedCellCredits objectAtIndex:indexPath.row] != [NSNull null])
+            credit = [cachedCellCredits objectAtIndex:indexPath.row];
+        
+        if ((NSNull *)[cachedCellIndices objectAtIndex:indexPath.row] != [NSNull null])
+            index = [[cachedCellIndices objectAtIndex:indexPath.row] integerValue];
+        
+        if ((NSNull *)[cachedCellIDs objectAtIndex:indexPath.row] != [NSNull null])
+            cellID = [cachedCellIDs objectAtIndex:indexPath.row];
+        
+        if ([credit isMemberOfClass:[MDACTextCredit class]] && ([(MDACTextCredit *)credit link] || [(MDACTextCredit *)credit viewController])) {
+            UITableViewCell *cell = [aTableView cellForRowAtIndexPath:indexPath];
+            UILabel *textLabel = (UILabel *)[cell.contentView viewWithTag:1];
             
+            textLabel.highlighted = YES;
         }
+    }
+}
+
+- (void)tableView:(UITableView *)aTableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    
+    MDACCredit *credit = nil;
+    id cellID = nil;
+    NSUInteger index = 0;
+    
+    [self generateCachedCellsIfNeeded];
+    
+    if (indexPath.row >= [cachedCellCredits count]) return;
+    
+    if ((NSNull *)[cachedCellCredits objectAtIndex:indexPath.row] != [NSNull null])
+        credit = [cachedCellCredits objectAtIndex:indexPath.row];
+    
+    if ((NSNull *)[cachedCellIndices objectAtIndex:indexPath.row] != [NSNull null])
+        index = [[cachedCellIndices objectAtIndex:indexPath.row] integerValue];
+    
+    if ((NSNull *)[cachedCellIDs objectAtIndex:indexPath.row] != [NSNull null])
+        cellID = [cachedCellIDs objectAtIndex:indexPath.row];
+    
+    if ([credit isMemberOfClass:[MDACTextCredit class]] && ([(MDACTextCredit *)credit link] || [(MDACTextCredit *)credit viewController])) {
+        UITableViewCell *cell = [aTableView cellForRowAtIndexPath:indexPath];
+        UILabel *textLabel = (UILabel *)[cell.contentView viewWithTag:1];
+        
+        textLabel.highlighted = YES;
+    }
+    
+    NSURL *url = nil;
+    MDACCreditItem *item = nil;
+    NSString *identifier = credit.identifier;
+    NSString *controllerName = credit.viewController;
+    if ([credit isMemberOfClass:[MDACListCredit class]] && cellID != MDACListTitleCellID) {
+        item = [(MDACListCredit *)credit itemAtIndex:index];
+        url = item.link;
+        identifier = item.identifier;
+        controllerName = item.viewController;
+    } else if ([credit isMemberOfClass:[MDACTextCredit class]]) {
+        url = [(MDACTextCredit *)credit link];
+    }
+    
+    Class ViewController = Nil;
+    
+    if (controllerName) {
+        ViewController = NSClassFromString(controllerName);
+        if (![ViewController isSubclassOfClass:[UIViewController class]]) {
+            ViewController = Nil;
+        }
+    }
+    
+    if (ViewController) {
+        UIViewController *viewController = [[ViewController alloc] init];
+        if (![delegate respondsToSelector:@selector(aboutController:shouldPresentController:forItem:fromCredit:withIdentifier:)] || [delegate aboutController:self shouldPresentController:viewController forItem:item fromCredit:credit withIdentifier:identifier]) {
+            UIViewController *parentController = nil;
+            if ([delegate respondsToSelector:@selector(aboutController:viewControllerToPresentAuxiliaryController:forItem:fromCredit:withIdentifier:)]) {
+                parentController = [delegate aboutController:self viewControllerToPresentAuxiliaryController:viewController forItem:item fromCredit:credit withIdentifier:identifier];
+            }
+            if (parentController || !self.navigationController) {
+                if (!parentController) parentController = self;
+                if ([delegate respondsToSelector:@selector(aboutController:willPresentAuxiliaryController:forItem:fromCredit:withIdentifier:)]) {
+                    [delegate aboutController:self willPresentAuxiliaryController:viewController forItem:item fromCredit:credit withIdentifier:identifier];
+                }
+                [parentController presentViewController:viewController animated:YES completion:^{
+                    if ([delegate respondsToSelector:@selector(aboutController:didPresentAuxiliaryController:forItem:fromCredit:withIdentifier:)]) {
+                        [delegate aboutController:self didPresentAuxiliaryController:viewController forItem:item fromCredit:credit withIdentifier:identifier];
+                    }
+                }];
+            } else if (self.navigationController) {
+                UIViewController *viewController = [[ViewController alloc] init];
+                [self.navigationController pushViewController:viewController animated:YES];
+            }
+        }
+    } else if (url && (![delegate respondsToSelector:@selector(aboutController:shouldOpenURL:forItem:fromCredit:withIdentifier:)] || [delegate aboutController:self shouldOpenURL:url forItem:item fromCredit:credit withIdentifier:identifier])) {
+        if ([url.scheme isEqualToString:@"mailto"]) {
+            if (NSClassFromString(@"MFMailComposeViewController") && [NSClassFromString(@"MFMailComposeViewController") canSendMail]) {
+                NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+                NSString *versionString = nil;
+                NSString *bundleShortVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+                NSString *bundleVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+                
+                if (bundleShortVersionString && bundleVersionString) {
+                    versionString = [NSString stringWithFormat:@" %@ (%@)",
+                                     bundleShortVersionString,
+                                     bundleVersionString];
+                } else if (bundleShortVersionString) {
+                    versionString = [NSString stringWithFormat:@" %@", bundleShortVersionString];
+                } else if (bundleVersionString) {
+                    versionString = [NSString stringWithFormat:@" %@", bundleVersionString];
+                }
+                NSString *subject = [NSString stringWithFormat:@"%@%@ Support", appName, versionString];
+                
+                NSString *recipient = [url resourceSpecifier];
+                if ([[(MDACListCredit *)credit itemAtIndex:index].userAssociations objectForKey:@"EmailName"]) {
+                    recipient = [NSString stringWithFormat:@"%@ <%@>", [[(MDACListCredit *)credit itemAtIndex:index].userAssociations objectForKey:@"EmailName"], recipient];
+                }
+                
+                [self openMailToRecipient:recipient subject:subject];
+            } else {
+                [[UIApplication sharedApplication] openURL:url];
+            }
+        } else if (!self.navigationController || ([[url absoluteString] rangeOfString:@"itunes.apple.com"].location != NSNotFound)) {
+            [[UIApplication sharedApplication] openURL:url];
+        } else {
+            MDACWebViewController *linkViewController = [[MDACWebViewController alloc] initWithURL:url];
+            [[self navigationController] pushViewController:linkViewController animated:YES];
+        }
+    }
+                   
+    if ([delegate respondsToSelector:@selector(aboutController:didSelectItem:fromCredit:withIdentifier:)]) {
+        [delegate aboutController:self didSelectItem:item fromCredit:credit withIdentifier:identifier];
     }
 }
 
@@ -814,7 +821,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     UIView *rootView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 320)];
     self.view = rootView;
     rootView.backgroundColor = self.backgroundColor;
-    [rootView release];
     
     tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 44, rootView.bounds.size.width, rootView.bounds.size.height-44) style:UITableViewStylePlain];
     tableView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
@@ -823,17 +829,15 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     tableView.dataSource = self;
     tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     [rootView addSubview:tableView];
-    [tableView release];
     
     MDACTitleBar *aTitleBar = [[MDACTitleBar alloc] initWithController:self];
     aTitleBar.title = self.navigationItem.title;
     self.titleBar = aTitleBar;
-    [aTitleBar release];
 }
 
 - (void)dismiss:(id)sender
 {
-    [self dismissModalViewControllerAnimated:YES];
+    [self dismissViewControllerAnimated:YES completion:NULL];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -841,7 +845,9 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     [super viewWillAppear:animated];
     
     self.showsTitleBar = !self.navigationController;
-    if ([titleBar isMemberOfClass:[MDACTitleBar class]]) {
+    if ([delegate respondsToSelector:@selector(aboutControllerShouldDisplayDoneButton:)]) {
+        [(MDACTitleBar *)titleBar setButtonHidden:![delegate aboutControllerShouldDisplayDoneButton:self]];
+    } else if ([titleBar isMemberOfClass:[MDACTitleBar class]]) {
         [(MDACTitleBar *)titleBar setButtonHidden:(self.parentViewController.class == [UITabBarController class])];
     }
 }
@@ -852,8 +858,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
         [self.view addSubview:aTitleBar];
         [titleBar removeFromSuperview];
         
-        [titleBar release];
-        titleBar = [aTitleBar retain];
+        titleBar = aTitleBar;
         
         titleBar.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin|UIViewAutoresizingFlexibleWidth;
         
@@ -933,13 +938,184 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     return YES;
 }
 
+
+- (void)generateIconIfNeeded
+{
+    if (iconImage) return;
+    
+    NSMutableDictionary *infoDict = [[[NSBundle mainBundle] infoDictionary] mutableCopy];
+    BOOL iconPrerendered = NO;
+    
+    NSArray *iconRefs = [infoDict objectForKey:@"CFBundleIconFiles"];
+    iconPrerendered = [[infoDict objectForKey:@"UIPrerenderedIcon"] boolValue];
+    
+    if (!iconRefs) {
+        iconRefs = [[[infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"];
+        iconPrerendered = [[[[infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"UIPrerenderedIcon"] boolValue];
+    }
+    
+    if (iconRefs) {
+        
+        float targetSize = 57.*[UIScreen mainScreen].scale;
+        float lastSize = 0;
+        
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            targetSize = 72.*[UIScreen mainScreen].scale;
+        }
+        
+        NSMutableArray *icons = [[NSMutableArray alloc] init];
+        
+        for (NSString *iconRef in iconRefs) {
+            UIImage *imageA = [UIImage imageNamed:iconRef];
+            
+            if (!imageA) {
+                NSLog(@"%@: Warning: The icon `%@` was not found.", self, iconRef);
+                return;
+            }
+            
+            NSUInteger i = 0;
+            
+            for (i = 0; i < [icons count]; i++) {
+                UIImage *imageB = [icons objectAtIndex:i];
+                if (imageA.size.width*imageA.scale < imageB.size.width*imageB.scale)
+                    break;
+            }
+            
+            [icons insertObject:imageA atIndex:i];
+        }
+        
+        for (UIImage *testIcon in icons) {
+            if (testIcon.size.width*testIcon.scale > lastSize ) {
+                lastSize = testIcon.size.width*testIcon.scale;
+                iconImage = testIcon;
+                
+                if (testIcon.size.width*testIcon.scale >= targetSize)
+                    break;
+            }
+        }
+        
+    } else {
+        iconImage = [UIImage imageNamed:[infoDict objectForKey:@"CFBundleIconFile"]];
+    }
+    
+    if (iconImage) {
+        if (!iconPrerendered) {
+            UIImage *overlay = [UIImage imageNamed:@"MDACIconOverlay.png"];
+            UIGraphicsBeginImageContextWithOptions(CGSizeMake(iconImage.size.width*iconImage.scale, iconImage.size.height*iconImage.scale), NO, 1);
+            [iconImage drawAtPoint:CGPointZero];
+            [overlay drawInRect:CGRectMake(-1*overlay.scale, -1*overlay.scale, overlay.size.width*overlay.scale, overlay.size.height*overlay.scale)];
+            iconImage = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+        }
+        
+        UIImage *maskImage = [UIImage imageNamed:@"MDACIconMask.png"];
+        iconImage = [iconImage maskedImageWithMask:maskImage];
+    }
+}
+
 #pragma mark - Manipulating Credits
+
+- (void)reloadCredits
+{
+    if (!reloadingCredits) [self performSelector:@selector(_reloadCreditsNow) withObject:nil afterDelay:0];
+}
+
+- (void)_reloadCreditsNow
+{
+    reloadingCredits = NO;
+    
+    [credits removeAllObjects];
+    
+    NSMutableDictionary *infoDict = [[[NSBundle mainBundle] infoDictionary] mutableCopy];
+    NSDictionary *localizedInfoDict = [[NSBundle mainBundle] localizedInfoDictionary];
+    
+    [infoDict addEntriesFromDictionary:localizedInfoDict];
+    
+    NSString *appName = [infoDict objectForKey:@"CFBundleDisplayName"];
+    NSString *versionString = nil;
+    
+    NSString *bundleShortVersionString = [infoDict objectForKey:@"CFBundleShortVersionString"];
+    NSString *bundleVersionString = [infoDict objectForKey:@"CFBundleVersion"];
+    
+    if (bundleShortVersionString && bundleVersionString) {
+        versionString = [NSString stringWithFormat:[self _longLocalizedVersionFormatString],
+                         bundleShortVersionString,
+                         bundleVersionString];
+    } else if (bundleShortVersionString) {
+        versionString = [NSString stringWithFormat:[self _shortLocalizedVersionFormatString], bundleShortVersionString];
+    } else if (bundleVersionString) {
+        versionString = [NSString stringWithFormat:[self _shortLocalizedVersionFormatString], bundleVersionString];
+    }
+    
+    [self generateIconIfNeeded];
+    
+    UIImage *icon = iconImage;
+    
+    [credits addObject:[MDACIconCredit iconCreditWithAppName:appName versionString:versionString icon:icon]];
+    
+    NSString *path = [[NSBundle mainBundle] pathForResource:self.creditsName ofType:@"plist"];
+    if (path) {
+        NSArray *creditsFile = [[NSArray alloc] initWithContentsOfFile:path];
+        if (creditsFile) {
+            for (NSDictionary *creditDict in creditsFile) {
+                if (creditDict) {
+                    if ([[creditDict objectForKey:@"Type"] isEqualToString:@"List"]) {
+                        [credits addObject:[MDACListCredit listCreditWithDictionary:creditDict]];
+                    } else if ([[creditDict objectForKey:@"Type"] isEqualToString:@"Text"]) {
+                        [credits addObject:[MDACTextCredit textCreditWithDictionary:creditDict]];
+                    } if ([[creditDict objectForKey:@"Type"] isEqualToString:@"Image"]) {
+                        [credits addObject:[MDACImageCredit imageCreditWithDictionary:creditDict]];
+                    }
+                }
+            }
+        }
+    }
+    
+    if (self.showsAttributions) {    
+        int numClasses;
+        Class *classes = NULL;
+        numClasses = objc_getClassList(NULL, 0);
+        
+        if (numClasses > 0 ) {
+            classes = (Class *)malloc(sizeof(Class) * numClasses);
+            numClasses = objc_getClassList(classes, numClasses);
+            
+            for (int i = 0; i < numClasses; i++) {
+                Class actualClass = object_getClass(classes[i]);
+                if (actualClass && class_respondsToSelector(actualClass, @selector(respondsToSelector:))) {
+                    unsigned int numMethods = 0;
+                    Method *methods = class_copyMethodList(actualClass, &numMethods);
+                    
+                    for (int j = 0; j < numMethods; j++) {
+                        if (method_getName(methods[j]) == @selector(MDAboutControllerTextCreditDictionary)) {
+                            //                            NSLog(@"Class %@ is included", NSStringFromClass(classes[i]));
+                            [credits addObject:[MDACTextCredit textCreditWithDictionary:[classes[i] performSelector:@selector(MDAboutControllerTextCreditDictionary)]]];
+                        }
+                    }
+                    free(methods);
+                }
+            }
+            free(classes);
+        }
+        
+        [credits addObject:[MDACTextCredit textCreditWithText:@"About screen powered by MDAboutViewController, available free on GitHub!"
+                                                         font:[UIFont boldSystemFontOfSize:11]
+                                                    alignment:NSTextAlignmentCenter
+                                                      linkURL:[NSURL URLWithString:@"https://github.com/mochidev/MDAboutControllerDemo"]]];
+    }
+    
+    if ([delegate respondsToSelector:@selector(aboutControllerDidReloadCredits:)]) {
+        [delegate aboutControllerDidReloadCredits:self];
+    }
+    
+    cachedCellCredits = nil;
+    [tableView reloadData];
+}
 
 - (void)addCredit:(MDACCredit *)aCredit
 {
     [credits addObject:aCredit];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -949,7 +1125,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 {
     [credits insertObject:aCredit atIndex:index];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -959,7 +1134,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 {
     [credits replaceObjectAtIndex:index withObject:aCredit];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -969,7 +1143,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 {
     [credits removeLastObject];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -979,7 +1152,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 {
     [credits removeObject:aCredit];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -989,7 +1161,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 {
     [credits removeObjectAtIndex:index];
     
-    [cachedCellCredits release];
     cachedCellCredits = nil;
     
     [tableView reloadData];
@@ -998,6 +1169,86 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 - (NSUInteger)creditCount
 {
     return [credits count];
+}
+
+#pragma mark - Localization
+
+- (NSString *)_localizedAboutString
+{
+    __strong static NSDictionary *locales = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        locales = @{
+        @"en" : @"About",
+        @"fr" : @"Informations",
+        @"ja" : @"情報"};
+    });
+    
+    NSString *formatString = nil;
+    
+    NSMutableArray *preferedLanguages = [[NSLocale preferredLanguages] mutableCopy];
+//    [preferedLanguages insertObject:[[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode] atIndex:0];
+    // That should have grabbed the current localization the app is in, but doesn't…
+    
+    for (NSString *languageCode in preferedLanguages) {
+        if ((formatString = [locales objectForKey:languageCode])) {
+            return formatString;
+        }
+    }
+    
+    return [locales objectForKey:@"en"];
+}
+
+- (NSString *)_shortLocalizedVersionFormatString
+{
+    __strong static NSDictionary *locales = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        locales = @{
+        @"en" : @"Version %@",
+        @"fr" : @"Version %@",
+        @"ja" : @"バージョン %@",
+        @"ar" : @"الإصدار %@"}; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
+    });
+    
+    NSString *formatString = nil;
+    
+    NSMutableArray *preferedLanguages = [[NSLocale preferredLanguages] mutableCopy];
+//    [preferedLanguages insertObject:[[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode] atIndex:0];
+    
+    for (NSString *languageCode in preferedLanguages) {
+        if ((formatString = [locales objectForKey:languageCode])) {
+            return formatString;
+        }
+    }
+    
+    return [locales objectForKey:@"en"];
+}
+
+- (NSString *)_longLocalizedVersionFormatString
+{
+    __strong static NSDictionary *locales = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        locales = @{
+        @"en" : @"Version %@ (%@)",
+        @"fr" : @"Version %@ (%@)",
+        @"ja" : @"バージョン %@ (%@)",
+        @"ar" : @"الإصدار %@ (%@)"}; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
+    });
+    
+    NSString *formatString = nil;
+    
+    NSMutableArray *preferedLanguages = [[NSLocale preferredLanguages] mutableCopy];
+//    [preferedLanguages insertObject:[[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode] atIndex:0];
+    
+    for (NSString *languageCode in preferedLanguages) {
+        if ((formatString = [locales objectForKey:languageCode])) {
+            return formatString;
+        }
+    }
+    
+    return [locales objectForKey:@"en"];
 }
 
 @end

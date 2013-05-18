@@ -5,7 +5,7 @@
 //  Created by Dimitri Bouniol on 12/26/11.
 //  Copyright (c) 2012 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -37,11 +37,13 @@
 
 #import <UIKit/UIKit.h>
 @class MDAboutController, MDACStyle;
+@protocol MDAboutControllerDelegate;
 
 @interface MDAboutNavigationController : UINavigationController
 
 - (id)initWithStyle:(MDACStyle *)style;
 
-@property (nonatomic, readonly) MDAboutController *aboutController;
+@property (weak, nonatomic, readonly) MDAboutController *aboutController;
+@property (nonatomic, weak) id<MDAboutControllerDelegate> aboutControllerDelegate; // sets delegate for underlying aboutController, not an instance of this object! This means the underlying aboutController is returned through delegate methods!
 
 @end

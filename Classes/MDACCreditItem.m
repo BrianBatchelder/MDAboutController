@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -39,8 +39,6 @@
 
 @implementation MDACCreditItem
 
-@synthesize name, role, link, viewController, userAssociations;
-
 - (id)initWithName:(NSString *)aName role:(NSString *)aRole linkURL:(NSURL *)anURL
 {
     if ((self = [super init])) {
@@ -56,7 +54,7 @@
     return [self initWithName:aName role:aRole linkURL:[NSURL URLWithString:aLink]];
 }
 
-- (id)initWithName:(NSString *)aName role:(NSString *)aRole viewController:(UIViewController *)aViewController
+- (id)initWithName:(NSString *)aName role:(NSString *)aRole viewController:(NSString *)aViewController
 {
     if ((self = [self initWithName:aName role:aRole linkURL:nil])) {
         self.viewController = aViewController;
@@ -71,17 +69,17 @@
 
 + (id)itemWithName:(NSString *)aName role:(NSString *)aRole linkURL:(NSURL *)anURL
 {
-    return [[[self alloc] initWithName:aName role:aRole linkURL:anURL] autorelease];
+    return [[self alloc] initWithName:aName role:aRole linkURL:anURL];
 }
 
 + (id)itemWithName:(NSString *)aName role:(NSString *)aRole linkString:(NSString *)aLink
 {
-    return [[[self alloc] initWithName:aName role:aRole linkURL:[NSURL URLWithString:aLink]] autorelease];
+    return [[self alloc] initWithName:aName role:aRole linkURL:[NSURL URLWithString:aLink]];
 }
 
-+ (id)itemWithName:(NSString *)aName role:(NSString *)aRole viewController:(UIViewController *)aViewController
++ (id)itemWithName:(NSString *)aName role:(NSString *)aRole viewController:(NSString *)aViewController
 {
-    return [[[self alloc] initWithName:aName role:aRole viewController:aViewController] autorelease];
+    return [[self alloc] initWithName:aName role:aRole viewController:aViewController];
 }
 
 + (id)item
@@ -91,37 +89,35 @@
 
 - (id)initWithDictionary:(NSDictionary *)aDict
 {
-    NSString *linkString = [aDict objectForKey:@"Link"];
-    if (!linkString && [aDict objectForKey:@"Email"]) {
-        linkString = [NSString stringWithFormat:@"mailto:%@", [aDict objectForKey:@"Email"]];;
-    }
-    if (!linkString && [aDict objectForKey:@"Controller"]) {
-        linkString = [NSString stringWithFormat:@"x-controller:%@", [aDict objectForKey:@"Controller"]];;
-    }
-    if (self = [self initWithName:[aDict objectForKey:@"Name"]
+    if ([aDict objectForKey:@"Controller"]) {
+        self = [self initWithName:[aDict objectForKey:@"Name"]
                              role:[aDict objectForKey:@"Role"]
-                       linkString:linkString]) {
-        NSMutableDictionary *newDict = [aDict mutableCopy];
-        [newDict removeObjectsForKeys:[NSArray arrayWithObjects:@"Link", @"Email", @"Name", @"Role", @"Controller", nil]];
-        self.userAssociations = newDict;
-        [newDict release];
+                   viewController:[aDict objectForKey:@"Controller"]];
+    } else {
+        NSString *linkString = [aDict objectForKey:@"Link"];
+        if (!linkString && [aDict objectForKey:@"Email"]) {
+            linkString = [NSString stringWithFormat:@"mailto:%@", [aDict objectForKey:@"Email"]];
+        }
+        
+        self = [self initWithName:[aDict objectForKey:@"Name"]
+                             role:[aDict objectForKey:@"Role"]
+                       linkString:linkString];
     }
+    
+    if (self) {
+        self.identifier = [aDict objectForKey:@"Identifier"];
+        NSMutableDictionary *newDict = [aDict mutableCopy];
+        [newDict removeObjectsForKeys:[NSArray arrayWithObjects:@"Link", @"Email", @"Name", @"Role", @"Controller", @"Identifier", nil]];
+        self.userAssociations = newDict;
+    }
+    
     return self;
 }
 
 + (id)itemWithDictionary:(NSDictionary *)aDict
 {
-    return [[[self alloc] initWithDictionary:aDict] autorelease];
+    return [[self alloc] initWithDictionary:aDict];
 }
 
-- (void)dealloc
-{
-    [userAssociations release];
-    [viewController release];
-    [name release];
-    [role release];
-    [link release];
-    [super dealloc];
-}
 
 @end

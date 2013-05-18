@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -39,8 +39,6 @@
 
 @implementation MDACCredit
 
-@synthesize type, viewController;
-
 - (id)initWithType:(NSString *)aType
 {
     if ((self = [super init])) {
@@ -56,7 +54,7 @@
 
 + (id)creditWithType:(NSString *)aType
 {
-    return [[[self alloc] initWithType:aType] autorelease];
+    return [[self alloc] initWithType:aType];
 }
 
 + (id)credit
@@ -64,11 +62,5 @@
     return [self creditWithType:nil];
 }
 
-- (void)dealloc
-{
-    [viewController release];
-    [type release];
-    [super dealloc];
-}
 
 @end

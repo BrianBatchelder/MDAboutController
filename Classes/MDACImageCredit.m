@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -61,22 +61,25 @@
 
 + (id)imageCreditWithImage:(UIImage *)anImage
 {
-    return [[[self alloc] initWithImage:anImage] autorelease];
+    return [[self alloc] initWithImage:anImage];
 }
 
 - (id)initWithDictionary:(NSDictionary *)aDict
 {
-    return [self initWithImage:[UIImage imageNamed:[aDict objectForKey:@"Image"]]];
+    if (self = [self initWithImage:[UIImage imageNamed:[aDict objectForKey:@"Image"]]]) {
+        self.identifier = [aDict objectForKey:@"Identifier"];
+        NSMutableDictionary *newDict = [aDict mutableCopy];
+        [newDict removeObjectsForKeys:[NSArray arrayWithObjects:@"Image", @"Identifier", nil]];
+        self.userAssociations = newDict;
+    }
+    
+    return self;
 }
 
 + (id)imageCreditWithDictionary:(NSDictionary *)aDict
 {
-    return [[[self alloc] initWithDictionary:aDict] autorelease];
+    return [[self alloc] initWithDictionary:aDict];
 }
 
-- (void)dealloc {
-    [image release];
-    [super dealloc];
-}
 
 @end

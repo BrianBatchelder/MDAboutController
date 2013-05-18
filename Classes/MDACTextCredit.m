@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -55,7 +55,7 @@
     return self;
 }
 
-- (id)initWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(UIViewController *)aViewController
+- (id)initWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(NSString *)aViewController
 {
     if ((self = [self initWithText:aTitle font:aFont alignment:textAlign linkURL:nil])) {
         self.viewController = aViewController;
@@ -65,22 +65,22 @@
 
 - (id)initWithType:(NSString *)aType
 {
-    return [self initWithText:nil font:nil alignment:UITextAlignmentCenter linkURL:nil];
+    return [self initWithText:nil font:nil alignment:NSTextAlignmentCenter linkURL:nil];
 }
 
 + (id)creditWithType:(NSString *)aType
 {
-    return [self textCreditWithText:nil font:nil alignment:UITextAlignmentCenter linkURL:nil];
+    return [self textCreditWithText:nil font:nil alignment:NSTextAlignmentCenter linkURL:nil];
 }
 
 + (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign linkURL:(NSURL *)anURL
 {
-    return [[[self alloc] initWithText:aTitle font:aFont alignment:textAlign linkURL:anURL] autorelease];
+    return [[self alloc] initWithText:aTitle font:aFont alignment:textAlign linkURL:anURL];
 }
 
-+ (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(UIViewController *)aViewController
++ (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(NSString *)aViewController
 {
-    return [[[self alloc] initWithText:aTitle font:aFont alignment:textAlign viewController:aViewController] autorelease];
+    return [[self alloc] initWithText:aTitle font:aFont alignment:textAlign viewController:aViewController];
 }
 
 - (id)initWithDictionary:(NSDictionary *)aDict
@@ -89,31 +89,45 @@
     if ([aDict objectForKey:@"Size"])
         fontSize = [[aDict objectForKey:@"Size"] floatValue];
     
-    UITextAlignment alignment = UITextAlignmentCenter;
+    UITextAlignment alignment = NSTextAlignmentCenter;
     
     if ([[aDict objectForKey:@"Alignment"] isEqualToString:@"Left"]) {
-        alignment = UITextAlignmentLeft;
+        alignment = NSTextAlignmentLeft;
     } else if ([[aDict objectForKey:@"Alignment"] isEqualToString:@"Right"]) {
-        alignment = UITextAlignmentRight;
+        alignment = NSTextAlignmentRight;
     }
     
-    return [self initWithText:[aDict objectForKey:@"Text"]
-                         font:[UIFont boldSystemFontOfSize:fontSize]
-                    alignment:alignment
-                      linkURL:[NSURL URLWithString:[aDict objectForKey:@"Link"]]];
+    if ([aDict objectForKey:@"Controller"]) {
+        self = [self initWithText:[aDict objectForKey:@"Text"]
+                             font:[UIFont boldSystemFontOfSize:fontSize]
+                        alignment:alignment
+                   viewController:[aDict objectForKey:@"Controller"]];
+    } else {
+        NSString *linkString = [aDict objectForKey:@"Link"];
+        if (!linkString && [aDict objectForKey:@"Email"]) {
+            linkString = [NSString stringWithFormat:@"mailto:%@", [aDict objectForKey:@"Email"]];
+        }
+        
+        self = [self initWithText:[aDict objectForKey:@"Text"]
+                             font:[UIFont boldSystemFontOfSize:fontSize]
+                        alignment:alignment
+                          linkURL:[NSURL URLWithString:linkString]];
+    }
+    
+    if (self) {
+        self.identifier = [aDict objectForKey:@"Identifier"];
+        NSMutableDictionary *newDict = [aDict mutableCopy];
+        [newDict removeObjectsForKeys:[NSArray arrayWithObjects:@"Link", @"Email", @"Text", @"Size", @"Alignment", @"Controller", @"Identifier", nil]];
+        self.userAssociations = newDict;
+    }
+    
+    return self;
 }
 
 + (id)textCreditWithDictionary:(NSDictionary *)aDict
 {
-    return [[[self alloc] initWithDictionary:aDict] autorelease];
+    return [[self alloc] initWithDictionary:aDict];
 }
 
-- (void)dealloc
-{
-    [text release];
-    [font release];
-    [link release];
-    [super dealloc];
-}
 
 @end

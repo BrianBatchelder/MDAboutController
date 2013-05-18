@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -37,26 +37,21 @@
 
 #import <UIKit/UIKit.h>
 
-@interface MDACCreditItem : NSObject {
-    NSString *name;
-    NSString *role;
-    NSDictionary *userAssociations;
-    NSURL *link;
-    UIViewController *viewController;
-}
+@interface MDACCreditItem : NSObject
 
 @property(nonatomic, copy) NSString *name;
 @property(nonatomic, copy) NSString *role;
 @property(nonatomic, copy) NSDictionary *userAssociations;
-@property(nonatomic, retain) NSURL *link;
-@property(nonatomic, retain) UIViewController *viewController;
+@property(nonatomic, strong) NSURL *link;
+@property(nonatomic, copy) NSString *viewController;
+@property(nonatomic, copy) NSString *identifier;
 
 - (id)initWithName:(NSString *)aName role:(NSString *)aRole linkURL:(NSURL *)anURL; // designated initializer
 - (id)initWithName:(NSString *)aName role:(NSString *)aRole linkString:(NSString *)aLink;
-- (id)initWithName:(NSString *)aName role:(NSString *)aRole viewController:(UIViewController *)aViewController;
+- (id)initWithName:(NSString *)aName role:(NSString *)aRole viewController:(NSString *)aViewController;
 + (id)itemWithName:(NSString *)aName role:(NSString *)aRole linkURL:(NSURL *)anURL;
 + (id)itemWithName:(NSString *)aName role:(NSString *)aRole linkString:(NSString *)aLink;
-+ (id)itemWithName:(NSString *)aName role:(NSString *)aRole viewController:(UIViewController *)aViewController;
++ (id)itemWithName:(NSString *)aName role:(NSString *)aRole viewController:(NSString *)aViewController;
 + (id)item;
 - (id)initWithDictionary:(NSDictionary *)aDict; // internal
 + (id)itemWithDictionary:(NSDictionary *)aDict; // internal

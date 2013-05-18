@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Doron Katz 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -63,14 +63,11 @@
     
     [webView loadRequest:[NSURLRequest requestWithURL:webURL]];
     [self.view addSubview:webView];
-    [webView release];
     
     activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
     UIBarButtonItem *loadButton = [[UIBarButtonItem alloc] initWithCustomView:activity];
     self.navigationItem.rightBarButtonItem = loadButton;
     self.navigationItem.title = @"Loading…";
-    [loadButton release];
-    [activity release];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -121,7 +118,20 @@
                               otherButtonTitles:nil];
     
 	[alert show];
-    [alert autorelease];
+}
+
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType
+{
+    // Open App Store URLs via UIApplication
+    if ([[request.URL absoluteString] rangeOfString:@"itunes.apple.com"].location != NSNotFound)
+    {
+        [[UIApplication sharedApplication] openURL:request.URL];
+        return NO;
+    }
+    else
+    {
+        return YES;
+    }
 }
 
 #pragma mark UI Alert delegate to pop back
@@ -131,10 +141,9 @@
         if (self.navigationController) {
             [self.navigationController popViewControllerAnimated:YES];
         } else {
-            [self.modalViewController dismissModalViewControllerAnimated:YES];
+            [self.presentedViewController dismissViewControllerAnimated:YES completion:NULL];
         }      
     }
-    [alertView autorelease];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -142,10 +151,5 @@
     return YES;
 }
 
-- (void)dealloc
-{
-    [webURL release];
-    [super dealloc];
-}
 
 @end

@@ -3,9 +3,9 @@
 //  MDAboutController
 //
 //  Created by Dimitri Bouniol on 5/23/11.
-//  Copyright 2012 Mochi Development Inc. All rights reserved.
+//  Copyright 2013 Mochi Development Inc. All rights reserved.
 //  
-//  Copyright (c) 2012 Dimitri Bouniol, Mochi Development, Inc.
+//  Copyright (c) 2013 Dimitri Bouniol, Mochi Development, Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software, associated artwork, and documentation files (the "Software"),
@@ -38,22 +38,17 @@
 #import <UIKit/UIKit.h>
 #import "MDACCredit.h"
 
-@interface MDACTextCredit : MDACCredit {
-    NSString *text;
-    UIFont *font;
-    UITextAlignment textAlignment;
-    NSURL *link;
-}
+@interface MDACTextCredit : MDACCredit
 
 @property(nonatomic, copy) NSString *text;
-@property(nonatomic, retain) UIFont *font;
+@property(nonatomic, strong) UIFont *font;
 @property(nonatomic) UITextAlignment textAlignment;
-@property(nonatomic, retain) NSURL *link;
+@property(nonatomic, strong) NSURL *link;
 
 - (id)initWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign linkURL:(NSURL *)anURL;
-- (id)initWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(UIViewController *)aViewController;
+- (id)initWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(NSString *)aViewController;
 + (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign linkURL:(NSURL *)anURL;
-+ (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(UIViewController *)aViewController;
++ (id)textCreditWithText:(NSString *)aTitle font:(UIFont *)aFont alignment:(UITextAlignment)textAlign viewController:(NSString *)aViewController;
 - (id)initWithDictionary:(NSDictionary *)aDict; // internal
 + (id)textCreditWithDictionary:(NSDictionary *)aDict; // internal
 
