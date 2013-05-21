@@ -403,7 +403,9 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             
             detailTextLabel = [[UILabel alloc] init];
             detailTextLabel.font = [self.style listCellDetailFont];
-            detailTextLabel.minimumScaleFactor = 0.8;
+            if (([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending)) {
+                detailTextLabel.minimumScaleFactor = 0.8;
+            }
             detailTextLabel.adjustsFontSizeToFitWidth = YES;
             detailTextLabel.baselineAdjustment = UIBaselineAdjustmentAlignBaselines;
             detailTextLabel.backgroundColor = [self.style listCellBackgroundColor];
