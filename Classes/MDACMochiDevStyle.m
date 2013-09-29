@@ -39,6 +39,11 @@
 
 @implementation MDACMochiDevStyle
 
+- (UIColor *)preferedTintColor
+{
+    return [UIColor colorWithWhite:1 alpha:0.8];
+}
+
 - (UIColor *)backgroundColor
 {
     return [UIColor colorWithPatternImage:[UIImage imageNamed:@"MDACBackground.png"]];
@@ -47,6 +52,11 @@
 - (BOOL)hasSimpleBackground
 {
     return NO;
+}
+
+- (BOOL)usesDarkNavigationBar
+{
+    return YES;
 }
 
 - (UIImage *)listCellBackgroundTop
@@ -91,7 +101,7 @@
 
 - (UIColor *)listCellBackgroundColor
 {
-    return [UIColor colorWithWhite:94./255. alpha:1];
+    return [UIColor colorWithWhite:(CGFloat)(94./255.) alpha:1];
 }
 
 - (UIColor *)listCellTextColor
@@ -101,12 +111,12 @@
 
 - (UIColor *)listCellDetailTextColor
 {
-    return [UIColor colorWithWhite:1 alpha:0.7];
+    return [UIColor colorWithWhite:1 alpha:(CGFloat)0.7];
 }
 
 - (UIColor *)listCellShadowColor
 {
-    return [UIColor colorWithWhite:0 alpha:0.6];
+    return [UIColor colorWithWhite:0 alpha:(CGFloat)0.6];
 }
 
 - (CGSize)listCellShadowOffset
@@ -126,7 +136,7 @@
 
 - (UIColor *)iconCellShadowColor
 {
-    return [UIColor colorWithWhite:0 alpha:0.8];
+    return [UIColor colorWithWhite:0 alpha:(CGFloat)0.8];
 }
 
 - (CGSize)iconCellShadowOffset
@@ -146,7 +156,7 @@
 
 - (UIColor *)textCellShadowColor
 {
-    return [UIColor colorWithWhite:0 alpha:0.8];
+    return [UIColor colorWithWhite:0 alpha:(CGFloat)0.8];
 }
 
 - (CGSize)textCellShadowOffset

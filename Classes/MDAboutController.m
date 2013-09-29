@@ -354,6 +354,9 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
+        cell.contentView.superview.clipsToBounds = NO; // get that pesky scrollview...
+        if (self.hasSimpleBackground)
+            cell.backgroundColor = self.backgroundColor;
         
         if (cellID == MDACTopListCellID || cellID == MDACMiddleListCellID || cellID == MDACBottomListCellID || cellID == MDACSingleListCellID) {
             UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.bounds.size.width, [self.style listHeight])];
@@ -389,7 +392,6 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             [selectedBackgroundView addSubview:selectedBackgroundImage];
             
             cell.backgroundView = backgroundView;
-            
             cell.selectedBackgroundView = selectedBackgroundView;
             
             textLabel = [[UILabel alloc] init];
@@ -446,7 +448,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             [containerView addSubview:iconView];
             
             
-            textLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width+25, floorf(10+iconView.bounds.size.height/2.-17), 170, 22)];
+            textLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width + 25., floorf(10. + iconView.bounds.size.height/2. - 17.), 170., 22.)];
             textLabel.font = [self.style iconCellFont];
             textLabel.backgroundColor = [UIColor clearColor];
             textLabel.opaque = NO;
@@ -456,7 +458,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
             textLabel.tag = 1;
             [containerView addSubview:textLabel];
             
-            detailTextLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width+25, floorf(10+iconView.bounds.size.height/2.+3), 170, 20)];
+            detailTextLabel = [[UILabel alloc] initWithFrame:CGRectMake(iconView.bounds.size.width + 25., floorf(10+iconView.bounds.size.height/2. + 3.), 170., 20.)];
             detailTextLabel.font = [self.style iconCellDetailFont];
             detailTextLabel.backgroundColor = [UIColor clearColor];
             detailTextLabel.opaque = NO;
@@ -567,7 +569,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
         CGRect containerFrame = containerView.frame;
         containerFrame.size.width = iconView.bounds.size.width + 35 + MAX([textLabel sizeThatFits:CGSizeZero].width , [detailTextLabel sizeThatFits:CGSizeZero].width);
         if (containerFrame.size.width > 300) containerFrame.size.width = 300;
-        containerFrame.origin.x = roundf((cell.contentView.bounds.size.width-containerFrame.size.width)/2.);
+        containerFrame.origin.x = roundf((cell.contentView.bounds.size.width-containerFrame.size.width)/(CGFloat)2.);
         containerView.frame = containerFrame;
     } else if ([credit isMemberOfClass:[MDACTextCredit class]]) {
         textLabel.textAlignment = [(MDACTextCredit *)credit textAlignment];
@@ -765,7 +767,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     } else if (url && (![delegate respondsToSelector:@selector(aboutController:shouldOpenURL:forItem:fromCredit:withIdentifier:)] || [delegate aboutController:self shouldOpenURL:url forItem:item fromCredit:credit withIdentifier:identifier])) {
         if ([url.scheme isEqualToString:@"mailto"]) {
             if (NSClassFromString(@"MFMailComposeViewController") && [NSClassFromString(@"MFMailComposeViewController") canSendMail]) {
-                NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+                NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
                 NSString *versionString = nil;
                 NSString *bundleShortVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
                 NSString *bundleVersionString = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
@@ -806,10 +808,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     [self generateCachedCellsIfNeeded];
-    CGFloat toolbarHeight = 0;
-    if (indexPath.section == 0 && indexPath.row == 0 && !self.navigationController.navigationBarHidden && self.navigationController.navigationBar.translucent)
-        toolbarHeight = self.navigationController.navigationBar.frame.size.height;
-    return [[cachedCellHeights objectAtIndex:indexPath.row] floatValue] + toolbarHeight;
+    return [[cachedCellHeights objectAtIndex:indexPath.row] floatValue];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
@@ -851,6 +850,11 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
         [(MDACTitleBar *)titleBar setButtonHidden:![delegate aboutControllerShouldDisplayDoneButton:self]];
     } else if ([titleBar isMemberOfClass:[MDACTitleBar class]]) {
         [(MDACTitleBar *)titleBar setButtonHidden:(self.parentViewController.class == [UITabBarController class])];
+    }
+    
+    if (!self.navigationController.navigationBarHidden && self.navigationController.navigationBar.translucent && ![self respondsToSelector:@selector(topLayoutGuide)]) {
+        tableView.contentInset = UIEdgeInsetsMake(self.navigationController.navigationBar.bounds.size.height, 0, 0, 0);
+        tableView.scrollIndicatorInsets = UIEdgeInsetsMake(self.navigationController.navigationBar.bounds.size.height, 0, 0, 0);
     }
 }
 
@@ -952,17 +956,17 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
     iconPrerendered = [[infoDict objectForKey:@"UIPrerenderedIcon"] boolValue];
     
     if (!iconRefs) {
-        iconRefs = [[[infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"];
-        iconPrerendered = [[[[infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"UIPrerenderedIcon"] boolValue];
+        iconRefs = [(NSDictionary *)[(NSDictionary *)[(NSDictionary *)infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"];
+        iconPrerendered = [[(NSDictionary *)[(NSDictionary *)[(NSDictionary *)infoDict objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"UIPrerenderedIcon"] boolValue];
     }
     
     if (iconRefs) {
         
-        float targetSize = 57.*[UIScreen mainScreen].scale;
+        CGFloat targetSize = (CGFloat)57.*[UIScreen mainScreen].scale;
         float lastSize = 0;
         
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            targetSize = 72.*[UIScreen mainScreen].scale;
+            targetSize = (CGFloat)72.*[UIScreen mainScreen].scale;
         }
         
         NSMutableArray *icons = [[NSMutableArray alloc] init];
@@ -1180,14 +1184,13 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (NSString *)_localizedAboutString
 {
-    __strong static NSDictionary *locales = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        locales = @{
+    static NSDictionary *locales = nil;
+    if (!locales) {
+        locales = [@{
         @"en" : @"About",
         @"fr" : @"Informations",
-        @"ja" : @"情報"};
-    });
+        @"ja" : @"情報"} copy];
+    }
     
     NSString *formatString = nil;
     
@@ -1206,15 +1209,14 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (NSString *)_shortLocalizedVersionFormatString
 {
-    __strong static NSDictionary *locales = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        locales = @{
+    static NSDictionary *locales = nil;
+    if (!locales) {
+        locales = [@{
         @"en" : @"Version %@",
         @"fr" : @"Version %@",
         @"ja" : @"バージョン %@",
-        @"ar" : @"الإصدار %@"}; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
-    });
+        @"ar" : @"الإصدار %@"} copy]; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
+    }
     
     NSString *formatString = nil;
     
@@ -1232,15 +1234,14 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
 
 - (NSString *)_longLocalizedVersionFormatString
 {
-    __strong static NSDictionary *locales = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        locales = @{
-        @"en" : @"Version %@ (%@)",
-        @"fr" : @"Version %@ (%@)",
-        @"ja" : @"バージョン %@ (%@)",
-        @"ar" : @"الإصدار %@ (%@)"}; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
-    });
+    static NSDictionary *locales = nil;
+    if (!locales) {
+        locales = [@{
+                    @"en" : @"Version %@ (%@)",
+                    @"fr" : @"Version %@ (%@)",
+                    @"ja" : @"バージョン %@ (%@)",
+                    @"ar" : @"الإصدار %@ (%@)"} copy]; // Check /System/Library/CoreServices/SystemVersion.bundle/ for more!
+    }
     
     NSString *formatString = nil;
     
