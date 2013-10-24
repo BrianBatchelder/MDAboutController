@@ -1095,6 +1095,7 @@ static NSString *MDACImageCellID        = @"MDACImageCell";
                     unsigned int numMethods = 0;
                     Method *methods = class_copyMethodList(actualClass, &numMethods);
                     
+                    #pragma GCC diagnostic ignored "-Wundeclared-selector"
                     for (int j = 0; j < numMethods; j++) {
                         if (method_getName(methods[j]) == @selector(MDAboutControllerTextCreditDictionary)) {
                             //                            NSLog(@"Class %@ is included", NSStringFromClass(classes[i]));
